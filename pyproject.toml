@@ -1,0 +1,26 @@
+[project]
+name = "griddogs"
+version = "0.1.0"
+description = "Parametric tool-anchor pegboard tiles for Gridfinity baseplates"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+dependencies = [
+    "manifold3d>=3.5.2",
+    "numpy>=2.4.6",
+    "trimesh>=5.0.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "B"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.16.3",
+]
