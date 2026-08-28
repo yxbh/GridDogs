@@ -21,22 +21,24 @@ FOOT_W      = (35.6, 37.2, 41.5)        # widths at each level
 FOOT_R      = (0.8, 1.6, 3.75)          # corner radii at each level
 
 PLATE_T     = 4.75    # pegboard plate thickness (total tile height = 9.5)
-HOLE_D      = 6.5     # anchor hole diameter  <-- tune after fit test
+HOLE_D      = 6.5     # anchor hole diameter
 HOLE_DEPTH  = 4.0     # blind hole depth
 HOLES_CELL  = 3       # holes per Gridfinity cell in each axis
 HOLE_PITCH  = GRID / HOLES_CELL
 HOLE_CHAMF  = 0.6     # insertion chamfer at hole mouth
 
-PEG_D       = 6.6     # peg diameter (slight interference vs HOLE_D)
+PEG_D       = 6.5     # peg diameter; anchors are cheaper to tune than tiles
 PEG_CLEAR   = 0.2     # bottom clearance between peg tip and blind hole
 PEG_L       = HOLE_DEPTH - PEG_CLEAR
 PEG_SLOT    = 1.4     # compression slot width through the peg
 PEG_TIP_CH  = 0.7     # peg tip chamfer
 PEG_ROOT_CH = HOLE_CHAMF  # root flare matches the hole-mouth chamfer
-PEG_ROOT_D  = PEG_D + 2 * PEG_ROOT_CH
+PEG_ROOT_CLEAR = 0.2  # diametral clearance at the hole mouth
+PEG_ROOT_D  = HOLE_D + 2 * HOLE_CHAMF - PEG_ROOT_CLEAR
+PEG_SLOT_ROOT = PEG_ROOT_CH / 2  # uncut bridge between slot and anchor head
 
 PEG_SUPPORT = 1.1     # solid wall on each side of the peg root
-WALL_T      = PEG_ROOT_D + 2 * PEG_SUPPORT
+WALL_T      = 10.0    # rounded practical width, exceeding required root support
 ROUND_D     = 12.0    # compact bumper; adjacent anchors retain a 2 mm gap
 ANCHOR_H    = (20.0, 40.0)  # standard short and tall heights above plate
 ANCHOR_CLEAR = 0.25   # per-side clearance between adjacent anchor footprints
@@ -50,7 +52,7 @@ DEEP_CTRL   = (0.08, 0.32)  # deeper sweep
 BOWL_CTRL   = (0.03, 0.12)  # most aggressive scoop
 SEGS        = 64
 
-MAGNETS     = True    # standard Gridfinity magnet pockets in the feet
+MAGNETS     = False   # enable Gridfinity magnet pockets in the feet
 MAG_D       = 6.3     # pocket diameter for 6 x 2 mm magnets (spec 6.5; 6.3 = press fit)
 MAG_DEPTH   = 2.4
 MAG_OFFSET  = 13.0    # +/- from cell centre (26 mm spacing, per Gridfinity spec)
@@ -65,6 +67,9 @@ os.makedirs(OUT, exist_ok=True)
 assert PLATE_T > HOLE_DEPTH, "blind holes must retain a solid floor"
 assert PEG_L > PEG_TIP_CH, "peg must retain a cylindrical press-fit section"
 assert PEG_SUPPORT > 0, "peg root needs positive surrounding wall thickness"
+assert WALL_T >= PEG_ROOT_D + 2 * PEG_SUPPORT, "wall does not support the peg root"
+assert PEG_ROOT_CLEAR > 0, "peg root flare must not wedge in the hole mouth"
+assert PEG_SLOT_ROOT > 0, "compression slot must stop before the anchor head"
 assert ANCHOR_CLEAR > 0, "adjacent curved anchors need lateral clearance"
 assert CURVE_SIZE > PEG_ROOT_D, "curved anchor body must support the peg root"
 
@@ -181,8 +186,22 @@ def peg(x=0.0, y=0.0, slot_along_x=False, side_flat=0.0):
                              circular_segments=SEGS)
     p = (body + tip + root).rotate([180, 0, 0])   # now spans z = -PEG_L .. 0
     sw = [PEG_SLOT, PEG_D + 2] if slot_along_x else [PEG_D + 2, PEG_SLOT]
-    slot = Manifold.cube([sw[0], sw[1], PEG_L * 2 + 1], True)\
-                   .translate([0, 0, -PEG_L / 2 - 0.5])
+    slot_r = PEG_SLOT / 2
+    slot_round_z = -PEG_SLOT_ROOT - slot_r
+    slot_bottom = -PEG_L - 0.2
+    slot_h = slot_round_z - slot_bottom
+    slot = Manifold.cube([sw[0], sw[1], slot_h], True)\
+                   .translate([0, 0, (slot_bottom + slot_round_z) / 2])
+    relief_len = PEG_D + 2
+    if slot_along_x:
+        relief = Manifold.cylinder(relief_len, slot_r, circular_segments=32)\
+                         .rotate([90, 0, 0])\
+                         .translate([0, relief_len / 2, slot_round_z])
+    else:
+        relief = Manifold.cylinder(relief_len, slot_r, circular_segments=32)\
+                         .rotate([0, 90, 0])\
+                         .translate([-relief_len / 2, 0, slot_round_z])
+    slot = slot + relief
     p = p - slot
     if side_flat:
         trim = Manifold.cube([PEG_D + 2, side_flat + 1, PEG_L + 1], True)\

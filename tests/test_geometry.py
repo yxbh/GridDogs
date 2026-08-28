@@ -1,7 +1,9 @@
 import unittest
+from collections import defaultdict, deque
 
 import numpy as np
 import trimesh
+from trimesh.intersections import mesh_plane
 
 import griddogs as g
 
@@ -15,11 +17,37 @@ def as_mesh(manifold):
     )
 
 
+def section_component_count(mesh, z):
+    graph = defaultdict(set)
+    for line in mesh_plane(mesh, [0, 0, 1], [0, 0, z]):
+        a = tuple(np.round(line[0], 5))
+        b = tuple(np.round(line[1], 5))
+        graph[a].add(b)
+        graph[b].add(a)
+
+    unseen = set(graph)
+    count = 0
+    while unseen:
+        count += 1
+        queue = deque([unseen.pop()])
+        while queue:
+            for neighbour in graph[queue.popleft()]:
+                if neighbour in unseen:
+                    unseen.remove(neighbour)
+                    queue.append(neighbour)
+    return count
+
+
 class ParameterTests(unittest.TestCase):
     def test_parameter_couplings(self):
         self.assertAlmostEqual(g.HOLE_PITCH, 14.0)
         self.assertAlmostEqual(g.PEG_L, g.HOLE_DEPTH - g.PEG_CLEAR)
         self.assertGreater(g.PLATE_T, g.HOLE_DEPTH)
+        self.assertGreater(g.PEG_SLOT_ROOT, 0)
+        self.assertLess(
+            g.PEG_ROOT_D,
+            g.HOLE_D + 2 * g.HOLE_CHAMF,
+        )
         self.assertGreater(g.WALL_T, g.PEG_ROOT_D)
         self.assertGreater(g.CURVE_SIZE, g.PEG_ROOT_D)
         self.assertLess(g.CURVE_SIZE, g.HOLE_PITCH)
@@ -75,6 +103,11 @@ class GeometryTests(unittest.TestCase):
                         builder(height),
                         [g.CURVE_SIZE, height + g.PEG_L, g.CURVE_SIZE],
                     )
+
+    def test_peg_slot_terminates_before_anchor_head(self):
+        peg = as_mesh(g.peg())
+        self.assertEqual(section_component_count(peg, -0.1), 1)
+        self.assertEqual(section_component_count(peg, -1.2), 2)
 
     def test_bone_and_fit_coupon(self):
         self.assert_watertight_size(g.anchor_bone(), [24.0, 17.0, 12.0 + g.PEG_L])

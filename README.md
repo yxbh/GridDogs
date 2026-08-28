@@ -38,9 +38,9 @@ Gridfinity pitch (`42 / 3`), and its geometry is independently designed.
 | `fit_test_coupon.stl` | 76 × 15 mm | Optional comparison strip, holes `HOLE_D ± 0.2 mm` |
 
 Tile holes are 6.5 mm ⌀ × 4 mm deep blind holes on a 14 mm pitch (3 × 3 holes per
-42 mm Gridfinity cell). Anchor pegs are 6.6 mm ⌀ with a compression slot and a
-chamfer-matched 7.8 mm root flare, spaced in multiples of 14 mm so multi-peg anchors
-always land on holes—even across adjoining tile boundaries.
+42 mm Gridfinity cell). Anchor pegs are 6.5 mm ⌀ with a compression slot, a rounded
+slot termination and a clearance-fit 7.5 mm root flare. Pegs are spaced in multiples
+of 14 mm so multi-peg anchors always land on holes—even across adjoining tile boundaries.
 
 ## Printing
 
@@ -67,11 +67,11 @@ for thicker handles and deeper objects. The 12 mm mascot bone is the only except
 
 ### Magnets (optional)
 
-Tiles include Gridfinity-standard magnet positions in the underside of the feet
-(6.3 mm ⌀ × 2.4 mm pockets for 6 × 2 mm magnets, four per cell at 26 mm spacing).
-Seat or glue magnets flush with the foot face. They help retain the tile only on a steel
-or magnet-equipped baseplate; they do nothing against a plain plastic baseplate. Set
-`MAGNETS = False` in the script to remove the pockets.
+Magnet pockets are disabled by default. Set `MAGNETS = True` to add Gridfinity-standard
+positions in the underside of the feet (6.3 mm ⌀ × 2.4 mm pockets for 6 × 2 mm magnets,
+four per cell at 26 mm spacing). Seat or glue magnets flush with the foot face. They help
+retain the tile only on a steel or magnet-equipped baseplate; they do nothing against a
+plain plastic baseplate.
 
 ## Customising
 
@@ -80,9 +80,11 @@ Everything is driven by the `PARAMS` block at the top of
 dimensions, wall heights, magnet pockets, and the list of tile sizes to generate
 (`TILES` accepts arbitrary `(cols, rows)` pairs).
 
-The default 6.5 mm hole gives 0.1 mm nominal interference with the 6.6 mm flexible peg.
-If your printer or material needs a different fit, use `fit_test_coupon.stl` as a quick
-comparison and adjust `HOLE_D`; the strip is not an exact thermal proxy for a full tile.
+The default peg and hole are both 6.5 mm nominally. The flexible slot supplies compliance,
+while the rounded slot termination and solid root bridge improve strength. The peg is the
+preferred fit-tuning dimension because anchors are much cheaper to reprint than tiles. If
+your printer or material needs a different fit, adjust `PEG_D`; the comparison strip is
+not an exact thermal proxy for a full tile.
 The notch count is the size index: one notch is `HOLE_D - 0.2 mm`, three is `HOLE_D`,
 and five is `HOLE_D + 0.2 mm`.
 
