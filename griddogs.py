@@ -22,20 +22,27 @@ FOOT_R      = (0.8, 1.6, 3.75)          # corner radii at each level
 
 PLATE_T     = 4.75    # pegboard plate thickness (total tile height = 9.5)
 HOLE_D      = 6.5     # anchor hole diameter
-HOLE_DEPTH  = 4.0     # blind hole depth
+HOLE_DEPTH  = 5.5     # blind hole depth; extends into the Gridfinity foot
 HOLES_CELL  = 3       # holes per Gridfinity cell in each axis
 HOLE_PITCH  = GRID / HOLES_CELL
 HOLE_CHAMF  = 0.6     # insertion chamfer at hole mouth
 
 PEG_D       = 6.5     # peg diameter; anchors are cheaper to tune than tiles
 PEG_CLEAR   = 0.2     # bottom clearance between peg tip and blind hole
-PEG_L       = HOLE_DEPTH - PEG_CLEAR
+PEG_L       = 3.8     # short slotted peg retained by the two-peg bone
+SINGLE_PEG_L = HOLE_DEPTH - PEG_CLEAR
+WALL_PEG_D  = PEG_D   # physically validated solid wall peg
+WALL_PEG_L  = SINGLE_PEG_L
 PEG_SLOT    = 1.4     # compression slot width through the peg
 PEG_TIP_CH  = 0.7     # peg tip chamfer
 PEG_ROOT_CH = HOLE_CHAMF  # root flare matches the hole-mouth chamfer
 PEG_ROOT_CLEAR = 0.2  # diametral clearance at the hole mouth
 PEG_ROOT_D  = HOLE_D + 2 * HOLE_CHAMF - PEG_ROOT_CLEAR
 PEG_SLOT_ROOT = PEG_ROOT_CH / 2  # uncut bridge between slot and anchor head
+PEG_RIDGE_D = 6.6     # physically validated ridge on single-peg anchors
+PEG_RIDGE_H = 0.8       # rounded ridge length along the peg
+PEG_RIDGE_Z = SINGLE_PEG_L - PEG_TIP_CH - PEG_RIDGE_H / 2
+COUPON_HOLE_DEPTH = 4.0  # keep the plate-only fit coupon blind
 
 PEG_SUPPORT = 1.1     # solid wall on each side of the peg root
 WALL_T      = 10.0    # rounded practical width, exceeding required root support
@@ -64,12 +71,23 @@ OUT         = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stl")
 
 os.makedirs(OUT, exist_ok=True)
 
-assert PLATE_T > HOLE_DEPTH, "blind holes must retain a solid floor"
+assert sum(FOOT_H) + PLATE_T > HOLE_DEPTH, "blind holes must retain a solid floor"
 assert PEG_L > PEG_TIP_CH, "peg must retain a cylindrical press-fit section"
+assert SINGLE_PEG_L > PEG_TIP_CH, "single peg must retain a cylindrical section"
+assert WALL_PEG_L > PEG_TIP_CH, "wall peg must retain a cylindrical section"
+assert WALL_PEG_D == HOLE_D, "wall peg and hole diameters must match"
 assert PEG_SUPPORT > 0, "peg root needs positive surrounding wall thickness"
 assert WALL_T >= PEG_ROOT_D + 2 * PEG_SUPPORT, "wall does not support the peg root"
 assert PEG_ROOT_CLEAR > 0, "peg root flare must not wedge in the hole mouth"
 assert PEG_SLOT_ROOT > 0, "compression slot must stop before the anchor head"
+assert PEG_D < PEG_RIDGE_D, "ridge must stand proud of its shaft"
+assert PEG_RIDGE_D <= PEG_ROOT_D, "ridge must fit beneath the root flare"
+assert PEG_RIDGE_Z - PEG_RIDGE_H / 2 > PEG_ROOT_CH, "test ridge must clear the root"
+assert PEG_RIDGE_Z + PEG_RIDGE_H / 2 <= SINGLE_PEG_L - PEG_TIP_CH, \
+    "ridge must finish before the tip chamfer"
+assert sum(FOOT_H) + PLATE_T - HOLE_DEPTH - MAG_DEPTH > 0, \
+    "tile holes must not meet optional magnet pockets"
+assert PLATE_T > COUPON_HOLE_DEPTH, "coupon holes must retain a solid floor"
 assert ANCHOR_CLEAR > 0, "adjacent curved anchors need lateral clearance"
 assert CURVE_SIZE > PEG_ROOT_D, "curved anchor body must support the peg root"
 
@@ -120,8 +138,9 @@ def chamfered_prism(cs, h, ch):
     return body + Manifold.batch_hull([lo, hi])
 
 
-def tile(nx, ny):
+def tile(nx, ny, hole_depth=HOLE_DEPTH):
     assert nx >= 1 and ny >= 1, "tile dimensions must be positive"
+    assert hole_depth > 0, "hole depth must be positive"
     foot_h = sum(FOOT_H)
     top_z  = foot_h + PLATE_T
     # feet
@@ -146,9 +165,9 @@ def tile(nx, ny):
         for j in range(hy):
             x = (i - (hx - 1) / 2) * HOLE_PITCH
             y = (j - (hy - 1) / 2) * HOLE_PITCH
-            hole = Manifold.cylinder(HOLE_DEPTH + 0.01, HOLE_D / 2,
+            hole = Manifold.cylinder(hole_depth + 0.01, HOLE_D / 2,
                                      circular_segments=SEGS
-                                     ).translate([x, y, top_z - HOLE_DEPTH])
+                                     ).translate([x, y, top_z - hole_depth])
             cham = Manifold.cylinder(HOLE_CHAMF + 0.01, HOLE_D / 2,
                                      HOLE_D / 2 + HOLE_CHAMF,
                                      circular_segments=SEGS
@@ -174,39 +193,71 @@ def tile(nx, ny):
     return solid - cut
 
 
-def peg(x=0.0, y=0.0, slot_along_x=False, side_flat=0.0):
+def peg(x=0.0, y=0.0, slot_along_x=False, side_flat=0.0,
+        body_d=PEG_D, ridge_d=None, peg_l=PEG_L, slotted=True):
     """Press-fit peg pointing DOWN from z=0 (in-use orientation).
     For parts that print lying on their side: slot_along_x turns the slot 90
     deg so the press-fit crowns sit on cleanly-printed vertical side walls,
     and side_flat provides a level interface for slicer support under the peg."""
-    body = Manifold.cylinder(PEG_L - PEG_TIP_CH, PEG_D / 2, circular_segments=SEGS)
-    tip  = Manifold.cylinder(PEG_TIP_CH, PEG_D / 2, PEG_D / 2 - PEG_TIP_CH,
-                             circular_segments=SEGS).translate([0, 0, PEG_L - PEG_TIP_CH])
-    root = Manifold.cylinder(PEG_ROOT_CH, PEG_ROOT_D / 2, PEG_D / 2,
+    root = Manifold.cylinder(PEG_ROOT_CH, PEG_ROOT_D / 2, body_d / 2,
                              circular_segments=SEGS)
-    p = (body + tip + root).rotate([180, 0, 0])   # now spans z = -PEG_L .. 0
-    sw = [PEG_SLOT, PEG_D + 2] if slot_along_x else [PEG_D + 2, PEG_SLOT]
-    slot_r = PEG_SLOT / 2
-    slot_round_z = -PEG_SLOT_ROOT - slot_r
-    slot_bottom = -PEG_L - 0.2
-    slot_h = slot_round_z - slot_bottom
-    slot = Manifold.cube([sw[0], sw[1], slot_h], True)\
-                   .translate([0, 0, (slot_bottom + slot_round_z) / 2])
-    relief_len = PEG_D + 2
-    if slot_along_x:
-        relief = Manifold.cylinder(relief_len, slot_r, circular_segments=32)\
-                         .rotate([90, 0, 0])\
-                         .translate([0, relief_len / 2, slot_round_z])
+    if ridge_d is None:
+        body = Manifold.cylinder(
+            peg_l - PEG_TIP_CH, body_d / 2, circular_segments=SEGS,
+        )
+        tip = Manifold.cylinder(
+            PEG_TIP_CH, body_d / 2, body_d / 2 - PEG_TIP_CH,
+            circular_segments=SEGS,
+        ).translate([0, 0, peg_l - PEG_TIP_CH])
+        profile = body + tip + root
     else:
-        relief = Manifold.cylinder(relief_len, slot_r, circular_segments=32)\
-                         .rotate([0, 90, 0])\
-                         .translate([-relief_len / 2, 0, slot_round_z])
-    slot = slot + relief
-    p = p - slot
+        ridge_start = PEG_RIDGE_Z - PEG_RIDGE_H / 2
+        ridge_steps = 8
+        stem_cs = [
+            (0, 0),
+            (PEG_ROOT_D / 2, 0),
+            (body_d / 2, PEG_ROOT_CH),
+            (body_d / 2, ridge_start),
+        ]
+        for step in range(1, ridge_steps + 1):
+            u = step / ridge_steps
+            rise = (1 - np.cos(2 * np.pi * u)) / 2
+            radius = (body_d + (ridge_d - body_d) * rise) / 2
+            stem_cs.append((radius, ridge_start + u * PEG_RIDGE_H))
+        stem_cs += [
+            (body_d / 2, peg_l - PEG_TIP_CH),
+            (body_d / 2 - PEG_TIP_CH, peg_l),
+            (0, peg_l),
+        ]
+        stem = Manifold.revolve(
+            CrossSection([np.array(stem_cs)]),
+            circular_segments=SEGS,
+        )
+        profile = stem
+    p = profile.rotate([180, 0, 0])   # now spans z = -peg_l .. 0
+    max_d = max(body_d, ridge_d or body_d)
+    if slotted:
+        sw = [PEG_SLOT, max_d + 2] if slot_along_x else [max_d + 2, PEG_SLOT]
+        slot_r = PEG_SLOT / 2
+        slot_round_z = -PEG_SLOT_ROOT - slot_r
+        slot_bottom = -peg_l - 0.2
+        slot_h = slot_round_z - slot_bottom
+        slot = Manifold.cube([sw[0], sw[1], slot_h], True)\
+                       .translate([0, 0, (slot_bottom + slot_round_z) / 2])
+        relief_len = max_d + 2
+        if slot_along_x:
+            relief = Manifold.cylinder(relief_len, slot_r, circular_segments=32)\
+                             .rotate([90, 0, 0])\
+                             .translate([0, relief_len / 2, slot_round_z])
+        else:
+            relief = Manifold.cylinder(relief_len, slot_r, circular_segments=32)\
+                             .rotate([0, 90, 0])\
+                             .translate([-relief_len / 2, 0, slot_round_z])
+        p = p - (slot + relief)
     if side_flat:
-        trim = Manifold.cube([PEG_D + 2, side_flat + 1, PEG_L + 1], True)\
-                       .translate([0, PEG_D / 2 - side_flat + (side_flat + 1) / 2,
-                                   -PEG_L / 2])
+        trim = Manifold.cube([max_d + 2, side_flat + 1, peg_l + 1], True)\
+                       .translate([0, max_d / 2 - side_flat + (side_flat + 1) / 2,
+                                   -peg_l / 2])
         p = p - trim
     return p.translate([x, y, 0])
 
@@ -223,21 +274,28 @@ def anchor_round(h):
            Manifold.cylinder(top_ch, ROUND_D / 2, ROUND_D / 2 - top_ch,
                              circular_segments=SEGS
                              ).translate([0, 0, h - top_ch])
-    return to_print_orientation(head + peg(), h)
+    anchor_peg = peg(ridge_d=PEG_RIDGE_D, peg_l=SINGLE_PEG_L)
+    return to_print_orientation(head + anchor_peg, h)
 
 
-def anchor_wall(npegs, h):
-    span = (npegs - 1) * HOLE_PITCH
-    L = span + WALL_T + 2.0
-    cs = rounded_rect_cs(L, WALL_T, 2.0)
-    head = chamfered_prism(cs, h, 1.2)
-    pegs = [peg(-span / 2 + k * HOLE_PITCH, 0) for k in range(npegs)]
-    m = head
-    for p in pegs:
-        m = m + p
-    return to_print_orientation(m, h)
-
-
+def anchor_wall(span, h):
+    """Wall anchor with one solid peg at each end."""
+    length = span + WALL_T + 2.0
+    head = chamfered_prism(rounded_rect_cs(length, WALL_T, 2.0), h, 1.2)
+    pegs = [
+        peg(
+            x,
+            0,
+            body_d=WALL_PEG_D,
+            peg_l=WALL_PEG_L,
+            slotted=False,
+        )
+        for x in (-span / 2, span / 2)
+    ]
+    return to_print_orientation(
+        head + Manifold.batch_boolean(pegs, OpType.Add),
+        h,
+    )
 def curve_sweep(x_outer, x_inner, shoulder_h, neck_h, ctrl):
     assert neck_h - shoulder_h > 1.0, "anchor height is too short for the curved profile"
     sweep_h = neck_h - shoulder_h
@@ -268,7 +326,15 @@ def curve_base_arcs(x0, x1):
 def finish_curve_anchor(pts):
     body = Manifold.extrude(CrossSection([np.array(pts)]), CURVE_SIZE)\
         .rotate([90, 0, 0]).translate([0, CURVE_SIZE / 2, 0])
-    m = body + peg(0, 0, slot_along_x=True, side_flat=0.5)
+    anchor_peg = peg(
+        0,
+        0,
+        slot_along_x=True,
+        side_flat=0.5,
+        ridge_d=PEG_RIDGE_D,
+        peg_l=SINGLE_PEG_L,
+    )
+    m = body + anchor_peg
     return m.rotate([-90, 0, 0]).translate([0, 0, CURVE_SIZE / 2])
 
 
@@ -360,8 +426,9 @@ def fit_coupon():
     cutters = []
     for k, d in enumerate(dias):
         x = -((len(dias) - 1) / 2) * pitch + k * pitch
-        cutters.append(Manifold.cylinder(HOLE_DEPTH + 0.01, d / 2,
-                       circular_segments=SEGS).translate([x, 0, T - HOLE_DEPTH]))
+        cutters.append(Manifold.cylinder(COUPON_HOLE_DEPTH + 0.01, d / 2,
+                       circular_segments=SEGS
+                       ).translate([x, 0, T - COUPON_HOLE_DEPTH]))
         cutters.append(Manifold.cylinder(HOLE_CHAMF + 0.01, d / 2,
                        d / 2 + HOLE_CHAMF, circular_segments=SEGS
                        ).translate([x, 0, T - HOLE_CHAMF]))
@@ -394,8 +461,8 @@ if __name__ == "__main__":
     for h in ANCHOR_H:
         hs = f"{int(h)}mm"
         export(anchor_round(h), f"anchor_round_bumper_{hs}.stl")
-        export(anchor_wall(2, h), f"anchor_wall_2peg_{hs}.stl")
-        export(anchor_wall(3, h), f"anchor_wall_3peg_{hs}.stl")
+        export(anchor_wall(HOLE_PITCH, h), f"anchor_wall_short_{hs}.stl")
+        export(anchor_wall(2 * HOLE_PITCH, h), f"anchor_wall_long_{hs}.stl")
         export(anchor_curve_standard(h), f"anchor_curve_standard_{hs}.stl")
         export(anchor_curve_deep(h), f"anchor_curve_deep_{hs}.stl")
         export(anchor_curve_bowl(h), f"anchor_curve_bowl_{hs}.stl")

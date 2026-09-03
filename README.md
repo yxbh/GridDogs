@@ -26,21 +26,23 @@ Gridfinity pitch (`42 / 3`), and its geometry is independently designed.
 | Part | Footprint | Notes |
 | --- | --- | --- |
 | `tile_{cols}x{rows}_gridfinity.stl` | Up to 293.5 × 293.5 mm | Every unique rectangle where `1 ≤ cols ≤ rows ≤ 7`; rotate for the opposite orientation |
-| `anchor_round_bumper_{20,40}mm.stl` | 12 mm ⌀ | Single-peg round bumper |
-| `anchor_wall_2peg_{20,40}mm.stl` | 26 × 10 mm | Short fence wall |
-| `anchor_wall_3peg_{20,40}mm.stl` | 40 × 10 mm | Long fence wall |
-| `anchor_curve_standard_{20,40}mm.stl` | 13.5 × 13.5 mm | General-purpose curved stop |
-| `anchor_curve_deep_{20,40}mm.stl` | 13.5 × 13.5 mm | Deeper curved stop |
-| `anchor_curve_bowl_{20,40}mm.stl` | 13.5 × 13.5 mm | Most aggressively scooped curved stop |
-| `anchor_curve_centre_standard_{20,40}mm.stl` | 13.5 × 13.5 mm | Double-sided curve with a centred peak |
-| `anchor_curve_centre_deep_{20,40}mm.stl` | 13.5 × 13.5 mm | Deep double-sided curve with a centred peak |
+| `anchor_round_bumper_{20,40}mm.stl` | 12 mm ⌀ | Single-peg round bumper with a 6.6 mm grip ridge |
+| `anchor_wall_short_{20,40}mm.stl` | 26 × 10 mm | Short fence wall with two solid end pegs |
+| `anchor_wall_long_{20,40}mm.stl` | 40 × 10 mm | Long fence wall with two solid end pegs and no centre peg |
+| `anchor_curve_standard_{20,40}mm.stl` | 13.5 × 13.5 mm | General-purpose single-peg curved stop with a grip ridge |
+| `anchor_curve_deep_{20,40}mm.stl` | 13.5 × 13.5 mm | Deeper single-peg curved stop with a grip ridge |
+| `anchor_curve_bowl_{20,40}mm.stl` | 13.5 × 13.5 mm | Most aggressively scooped single-peg curved stop with a grip ridge |
+| `anchor_curve_centre_standard_{20,40}mm.stl` | 13.5 × 13.5 mm | Double-sided single-peg curve with a centred peak and grip ridge |
+| `anchor_curve_centre_deep_{20,40}mm.stl` | 13.5 × 13.5 mm | Deep double-sided single-peg curve with a centred peak and grip ridge |
 | `anchor_bone.stl` | 24 × 17 mm | The mascot — dog-bone anchor, two pegs |
 | `fit_test_coupon.stl` | 76 × 15 mm | Optional comparison strip, holes `HOLE_D ± 0.2 mm` |
 
-Tile holes are 6.5 mm ⌀ × 4 mm deep blind holes on a 14 mm pitch (3 × 3 holes per
-42 mm Gridfinity cell). Anchor pegs are 6.5 mm ⌀ with a compression slot, a rounded
-slot termination and a clearance-fit 7.5 mm root flare. Pegs are spaced in multiples
-of 14 mm so multi-peg anchors always land on holes—even across adjoining tile boundaries.
+Tile holes are 6.5 mm ⌀ × 5.5 mm deep blind holes on a 14 mm pitch (3 × 3 holes per
+42 mm Gridfinity cell). Round and curved single-peg anchors use a 5.3 mm-long slotted
+shaft with a 6.6 mm grip ridge. Wall anchors use physically tested solid 6.5 mm ⌀ ×
+5.3 mm end pegs. The two-peg bone retains its shorter slotted pegs. All pegs use a
+clearance-fit 7.5 mm root flare and land on the 14 mm lattice—even across adjoining
+tile boundaries.
 
 ## Printing
 
@@ -80,11 +82,13 @@ Everything is driven by the `PARAMS` block at the top of
 dimensions, wall heights, magnet pockets, and the list of tile sizes to generate
 (`TILES` accepts arbitrary `(cols, rows)` pairs).
 
-The default peg and hole are both 6.5 mm nominally. The flexible slot supplies compliance,
-while the rounded slot termination and solid root bridge improve strength. The peg is the
-preferred fit-tuning dimension because anchors are much cheaper to reprint than tiles. If
-your printer or material needs a different fit, adjust `PEG_D`; the comparison strip is
-not an exact thermal proxy for a full tile.
+The default peg shaft and hole are both 6.5 mm nominally. Single-peg anchors add a
+6.6 mm rounded grip ridge to their flexible shaft, while the rounded slot termination
+and solid root bridge improve strength. Wall anchors instead use two solid end pegs
+because physical testing showed that slotted wall pegs could break during removal. The
+peg is the preferred fit-tuning dimension because anchors are much cheaper to reprint
+than tiles. If your printer or material needs a different fit, adjust `PEG_D`; the
+comparison strip is not an exact thermal proxy for a full tile.
 The notch count is the size index: one notch is `HOLE_D - 0.2 mm`, three is `HOLE_D`,
 and five is `HOLE_D + 0.2 mm`.
 

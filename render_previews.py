@@ -38,8 +38,8 @@ FAMILY = [
     ("anchor_curve_deep_40mm.stl", 180, 14, 42, 0.0),
     ("anchor_curve_bowl_40mm.stl", 180, 42, 42, 0.0),
     # Short anchors in front remain visible.
-    ("anchor_wall_3peg_20mm.stl", 0, 0, -42, 20.0),
-    ("anchor_wall_2peg_20mm.stl", 90, -42, -35, 20.0),
+    ("anchor_wall_long_20mm.stl", 0, 0, -42, 20.0),
+    ("anchor_wall_short_20mm.stl", 90, -42, -35, 20.0),
     ("anchor_bone.stl", 0, 35, -14, 12.0),
     ("anchor_curve_centre_standard_20mm.stl", 0, -14, 0, 0.0),
     ("anchor_curve_centre_deep_20mm.stl", 0, 14, 0, 0.0),
