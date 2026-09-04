@@ -66,6 +66,7 @@ MAG_OFFSET  = 13.0    # +/- from cell centre (26 mm spacing, per Gridfinity spec
 MAG_CHAMF   = 0.4
 
 TILES       = [(cols, rows) for cols in range(1, 8) for rows in range(cols, 8)]
+DIAGONAL_WALLS = (("2x2", 1, 1), ("2x3", 1, 2))
 OUT         = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stl")
 # -----------------------------------------------------------------------------
 
@@ -463,6 +464,9 @@ if __name__ == "__main__":
         export(anchor_round(h), f"anchor_round_bumper_{hs}.stl")
         export(anchor_wall(HOLE_PITCH, h), f"anchor_wall_short_{hs}.stl")
         export(anchor_wall(2 * HOLE_PITCH, h), f"anchor_wall_long_{hs}.stl")
+        for name, dx, dy in DIAGONAL_WALLS:
+            span = HOLE_PITCH * np.hypot(dx, dy)
+            export(anchor_wall(span, h), f"anchor_wall_diagonal_{name}_{hs}.stl")
         export(anchor_curve_standard(h), f"anchor_curve_standard_{hs}.stl")
         export(anchor_curve_deep(h), f"anchor_curve_deep_{hs}.stl")
         export(anchor_curve_bowl(h), f"anchor_curve_bowl_{hs}.stl")

@@ -1,6 +1,6 @@
 """
 Render preview PNGs of every GridDogs STL, plus a 'family' hero shot of anchors
-in use on the 3x3 tile.
+in use on the 5x5 tile.
 
 Run headless with Blender (no GUI needed):
   blender --background --factory-startup --python render_previews.py
@@ -30,19 +30,21 @@ ORANGE = (0.80, 0.28, 0.05, 1.0)    # anchors (hero colour)
 # The Blender flip (euler X=pi) exactly cancels to_print_orientation's flip, so
 # each entry is a plain plan rotation + translation of the IN-USE part: world
 # footprint = Rz(rot_z) . in_use + (x, y). All peg positions verified on the
-# hole lattice (multiples of 14, within +/-56).
+# hole lattice (multiples of 14, within +/-98).
 FAMILY = [
     # Tall anchors at the back of the shot.
-    ("anchor_round_bumper_40mm.stl", 0, -42, 42, 40.0),
-    ("anchor_curve_standard_40mm.stl", 180, -14, 42, 0.0),
-    ("anchor_curve_deep_40mm.stl", 180, 14, 42, 0.0),
-    ("anchor_curve_bowl_40mm.stl", 180, 42, 42, 0.0),
+    ("anchor_round_bumper_40mm.stl", 0, -70, 70, 40.0),
+    ("anchor_curve_standard_40mm.stl", 180, -42, 70, 0.0),
+    ("anchor_curve_deep_40mm.stl", 180, -14, 70, 0.0),
+    ("anchor_curve_bowl_40mm.stl", 180, 14, 70, 0.0),
     # Short anchors in front remain visible.
-    ("anchor_wall_long_20mm.stl", 0, 0, -42, 20.0),
-    ("anchor_wall_short_20mm.stl", 90, -42, -35, 20.0),
-    ("anchor_bone.stl", 0, 35, -14, 12.0),
-    ("anchor_curve_centre_standard_20mm.stl", 0, -14, 0, 0.0),
-    ("anchor_curve_centre_deep_20mm.stl", 0, 14, 0, 0.0),
+    ("anchor_wall_diagonal_2x2_20mm.stl", 45, -77, 35, 20.0),
+    ("anchor_curve_centre_standard_20mm.stl", 0, -28, 14, 0.0),
+    ("anchor_curve_centre_deep_20mm.stl", 0, 0, 14, 0.0),
+    ("anchor_bone.stl", 0, 49, 14, 12.0),
+    ("anchor_wall_short_20mm.stl", 90, -70, -63, 20.0),
+    ("anchor_wall_long_20mm.stl", 0, 0, -70, 20.0),
+    ("anchor_wall_diagonal_2x3_20mm.stl", 63.4349488, 63, -70, 20.0),
 ]
 
 
@@ -149,7 +151,7 @@ def family_render():
     fresh_scene()
     tile_mat = material("tile", GREY)
     anchor_mat = material("anchor", ORANGE)
-    tile_obj = import_stl(os.path.join(STL_DIR, "tile_3x3_gridfinity.stl"), tile_mat)
+    tile_obj = import_stl(os.path.join(STL_DIR, "tile_5x5_gridfinity.stl"), tile_mat)
     objs = [tile_obj]
     plate_top = bbox([tile_obj])[1].z
     for stl_name, rot_z, x, y, head_h in FAMILY:

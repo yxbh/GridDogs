@@ -29,6 +29,8 @@ Gridfinity pitch (`42 / 3`), and its geometry is independently designed.
 | `anchor_round_bumper_{20,40}mm.stl` | 12 mm ⌀ | Single-peg round bumper with a 6.6 mm grip ridge |
 | `anchor_wall_short_{20,40}mm.stl` | 26 × 10 mm | Short fence wall with two solid end pegs |
 | `anchor_wall_long_{20,40}mm.stl` | 40 × 10 mm | Long fence wall with two solid end pegs and no centre peg |
+| `anchor_wall_diagonal_2x2_{20,40}mm.stl` | 31.8 × 10 mm | Diagonal wall spanning a 2×2 group of holes |
+| `anchor_wall_diagonal_2x3_{20,40}mm.stl` | 43.3 × 10 mm | Diagonal wall spanning a 2×3 group of holes |
 | `anchor_curve_standard_{20,40}mm.stl` | 13.5 × 13.5 mm | General-purpose single-peg curved stop with a grip ridge |
 | `anchor_curve_deep_{20,40}mm.stl` | 13.5 × 13.5 mm | Deeper single-peg curved stop with a grip ridge |
 | `anchor_curve_bowl_{20,40}mm.stl` | 13.5 × 13.5 mm | Most aggressively scooped single-peg curved stop with a grip ridge |
@@ -43,6 +45,11 @@ shaft with a 6.6 mm grip ridge. Wall anchors use physically tested solid 6.5 mm 
 5.3 mm end pegs. The two-peg bone retains its shorter slotted pegs. All pegs use a
 clearance-fit 7.5 mm root flare and land on the 14 mm lattice—even across adjoining
 tile boundaries.
+
+Diagonal walls use the same two solid end pegs as straight walls. The `2x2` version
+connects holes one column and one row apart; the `2x3` version connects holes one column
+and two rows apart. Their round pegs let each wall align naturally in either diagonal
+direction as it is inserted.
 
 ## Printing
 

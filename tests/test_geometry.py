@@ -47,6 +47,7 @@ def section_extents(mesh, z):
 class ParameterTests(unittest.TestCase):
     def test_parameter_couplings(self):
         self.assertAlmostEqual(g.HOLE_PITCH, 14.0)
+        self.assertEqual(g.DIAGONAL_WALLS, (("2x2", 1, 1), ("2x3", 1, 2)))
         self.assertLessEqual(g.PEG_L, g.HOLE_DEPTH - g.PEG_CLEAR)
         self.assertAlmostEqual(g.WALL_PEG_L, g.HOLE_DEPTH - g.PEG_CLEAR)
         self.assertAlmostEqual(g.SINGLE_PEG_L, g.HOLE_DEPTH - g.PEG_CLEAR)
@@ -99,6 +100,8 @@ class GeometryTests(unittest.TestCase):
             for name, span in (
                 ("wall_short", g.HOLE_PITCH),
                 ("wall_long", 2 * g.HOLE_PITCH),
+                ("wall_diagonal_2x2", g.HOLE_PITCH * np.sqrt(2)),
+                ("wall_diagonal_2x3", g.HOLE_PITCH * np.sqrt(5)),
             ):
                 with self.subTest(part=name, height=height):
                     length = span + g.WALL_T + 2.0
@@ -156,7 +159,13 @@ class GeometryTests(unittest.TestCase):
 
     def test_wall_pegs_are_solid_and_at_the_ends(self):
         h = g.ANCHOR_H[1]
-        for span in (g.HOLE_PITCH, 2 * g.HOLE_PITCH):
+        spans = [
+            g.HOLE_PITCH,
+            2 * g.HOLE_PITCH,
+            *(g.HOLE_PITCH * np.hypot(dx, dy)
+              for _, dx, dy in g.DIAGONAL_WALLS),
+        ]
+        for span in spans:
             with self.subTest(span=span):
                 wall = as_mesh(g.anchor_wall(span, h))
                 section_z = h + (
